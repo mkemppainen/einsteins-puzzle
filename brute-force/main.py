@@ -1,8 +1,6 @@
 # bruteforcing won't work because there are something like 24,883,200,000
 # combinations the houses could be in
-# import Solver
-from solving import Constraints, Solver
-import solving
+from solving import Solver, Constraints
 
 # colors = ['red', 'green', 'ivory', 'yellow', 'blue']
 # people = ['englishman', 'spaniard', 'ukrainian', 'norwegian', 'japanese']
@@ -29,7 +27,6 @@ import solving
 # solver = Solver(attributes, constraints)
 # solver.solve()
 
-
 # houses are numbered from left to right from 0 to 4
 
 # Solve not quite the Einstein's puzzle instead:
@@ -41,40 +38,25 @@ import solving
 # 5. The dog lives in the green house.
 # 6. The blue house is left of the green house.
 #
-# Who owns the goldfish? (brit)
+# Who owns the goldfish?
 
-# colors = ['red', 'blue', 'green']
-# people = ['brit', 'norwegian', 'american']
-# pets = ['cat', 'dog', 'goldfish']
-# attributes = [people, colors, pets]
-# goldfish_constraints = Constraints(3) \
-#     .together('brit', 'red') \
-#     .together('norwegian', 1) \
-#     .adjacent('american', 'cat') \
-#     .together('dog', 'green') \
-#     .order('blue', 'green')
-#
-# solver = Solver(attributes, goldfish_constraints)
+colors = ['red', 'blue', 'green']
+people = ['brit', 'norwegian', 'american']
+pets = ['cat', 'dog', 'goldfish']
+attributes = [people, colors, pets]
+goldfish_constraints = Constraints(3) \
+    .together('brit', 'red') \
+    .together('norwegian', 1) \
+    .adjacent('american', 'cat') \
+    .together('dog', 'green') \
+    .order('blue', 'green')
 
-# answer = next(solver.solve())
-# for group in answer:
-#     if 'goldfish' in group:
-#         # Attributes in the answer group are in
-#         # the same order as in the input attributes
-#         print('The %s owns the goldfish' % group[0])
+solver = Solver(attributes, goldfish_constraints)
+answer = next(solver.solve())
+for group in answer:
+    if 'goldfish' in group:
+        # Attributes in the answer group are in
+        # the same order as in the input attributes
+        print('The %s owns the goldfish' % group[0])
 
-# Solver.attribute_indexes([[['k','a'],['1','2']],[['k','a'],['1','2']]],'1')
-
-# attributes: ([a,s,d],[1,2,3],[i,o,p])
-# groups complete:  ([[a],[1],[i]],[[s],[2],[o]],[[d],[3],[p]])
-# groups incomplete: (([a,s,d],[1,2,3],[i,o,p]),([a,s,d],[1,2,3],[i,o,p]),([a,s,d],[1,2,3],[i,o,p]))
-
-groups = [[['blue'],['cat','dog']],[['red','blue'],['cat']]]
-constraints = solving.Constraints(2)
-constraints.together('red','cat') # doctest: +ELLIPSIS
-asdf = constraints.constraints[0](groups)
-print(asdf)
-constraints.together('blue','dog')
-asdf2 = constraints.constraints[1](groups)
-print(asdf2)
 

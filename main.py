@@ -4,30 +4,31 @@
 from solving import Constraints, Solver
 import solving
 
-# colors = ['red', 'green', 'ivory', 'yellow', 'blue']
-# people = ['englishman', 'spaniard', 'ukrainian', 'norwegian', 'japanese']
-# drinks = ['coffee', 'tea', 'milk', 'orange juice', 'water']
-# pets = ['dog', 'snails', 'fox', 'horse', 'zebra']
-# tobacco = ['old gold', 'kool', 'chesterfield', 'lucky strike', 'parliament']
-# attributes = [colors, people, drinks, pets, tobacco]
+colors = ['red', 'green', 'ivory', 'yellow', 'blue']
+people = ['englishman', 'spaniard', 'ukrainian', 'norwegian', 'japanese']
+drinks = ['coffee', 'tea', 'milk', 'orange juice', 'water']
+pets = ['dog', 'snails', 'fox', 'horse', 'zebra']
+tobacco = ['old gold', 'kool', 'chesterfield', 'lucky strike', 'parliament']
+attributes = [colors, people, drinks, pets, tobacco]
 
-# constraints = Constraints(5) \
-#     .together('englishman', 'red') \
-#     .together('spaniard', 'dog') \
-#     .together('coffee', 'green') \
-#     .together('ukrainian', 'tea') \
-#     .order('ivory', 'green') \
-#     .together('old gold', 'snails') \
-#     .together('kool', 'yellow') \
-#     .middle('milk') \
-#     .together('norwegian', 0) \
-#     .adjacent('chesterfield', 'fox') \
-#     .adjacent('kool', 'horse') \
-#     .together('lucky strike', 'orange juice') \
-#     .together('japanese', 'parliament') \
-#     .adjacent('norwegian', 'blue')
-# solver = Solver(attributes, constraints)
-# solver.solve()
+constraints = Constraints(5) \
+    .together('englishman', 'red') \
+    .together('spaniard', 'dog') \
+    .together('coffee', 'green') \
+    .together('ukrainian', 'tea') \
+    .order('ivory', 'green') \
+    .together('old gold', 'snails') \
+    .together('kool', 'yellow') \
+    .middle('milk') \
+    .together('norwegian', 0) \
+    .adjacent('chesterfield', 'fox') \
+    .adjacent('kool', 'horse') \
+    .together('lucky strike', 'orange juice') \
+    .together('japanese', 'parliament') \
+    .adjacent('norwegian', 'blue')
+solver = Solver(attributes, constraints)
+answer = solver.solve()
+print(answer)
 
 
 # houses are numbered from left to right from 0 to 4
@@ -55,6 +56,9 @@ import solving
 #     .order('blue', 'green')
 #
 # solver = Solver(attributes, goldfish_constraints)
+#
+# answer = solver.solve()
+# print(answer)
 
 # answer = next(solver.solve())
 # for group in answer:
@@ -63,18 +67,12 @@ import solving
 #         # the same order as in the input attributes
 #         print('The %s owns the goldfish' % group[0])
 
-# Solver.attribute_indexes([[['k','a'],['1','2']],[['k','a'],['1','2']]],'1')
 
 # attributes: ([a,s,d],[1,2,3],[i,o,p])
 # groups complete:  ([[a],[1],[i]],[[s],[2],[o]],[[d],[3],[p]])
 # groups incomplete: (([a,s,d],[1,2,3],[i,o,p]),([a,s,d],[1,2,3],[i,o,p]),([a,s,d],[1,2,3],[i,o,p]))
 
-groups = [[['blue'],['cat','dog']],[['red','blue'],['cat']]]
-constraints = solving.Constraints(2)
-constraints.together('red','cat') # doctest: +ELLIPSIS
-asdf = constraints.constraints[0](groups)
-print(asdf)
-constraints.together('blue','dog')
-asdf2 = constraints.constraints[1](groups)
-print(asdf2)
+
+# import pdb; pdb.set_trace()
+# import code; code.interact(local=locals())
 

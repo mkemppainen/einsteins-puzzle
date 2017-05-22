@@ -79,18 +79,14 @@ class Constraints:
     groups that are tested AttributeNotFoundException will be thrown.
     """
 
-    # todo: poista group_count
-    def __init__(self, group_count):
+    def __init__(self):
         """ Initialize constraints with a number of groups."""
-
         self.constraints = []
-        self.groupCount = group_count
 
-    # todo: hoida jos attribuutti on numero. se on jo indeksi
     def together(self, attribute1, attribute2):
         """ Add constraint: Attributes belong in the same group.
         >>> groups = [[['blue', 'green'],['cat','dog']],[['red','blue'],['cat','dog']]]
-        >>> constraints = Constraints(2) 
+        >>> constraints = Constraints()
         >>> constraints.together('red','cat') # doctest: +ELLIPSIS
         <...Constraints object at ...>
         >>> constraints.constraints[0](groups)
@@ -116,7 +112,7 @@ class Constraints:
     def adjacent(self, attribute1, attribute2):
         """ Add constraint: Attributes are next to each other in any order.
 
-        >>> constraints = Constraints(2) 
+        >>> constraints = Constraints() 
         >>> constraints.adjacent('red','cat') # doctest: +ELLIPSIS
         <...Constraints object at ...>
         >>> groups = [[['blue'],['cat','dog']],[['red','blue'],['cat','dog']]]
@@ -125,9 +121,11 @@ class Constraints:
         >>> groups2 = [[['red'],['cat','dog']],[['red','green'],['dog']]]
         >>> constraints.constraints[0](groups2)
         [[[], ['cat', 'dog']], [['red', 'green'], ['dog']]]
-        >>> groups3 = [[['red']],[['cat']]]
-        >>> constraints.constraints[0](groups3)
-        [[['red']], [['cat']]]
+        >>> groups3 = [[['red']],[['dog']]]
+        >>> constraints.constraints[0](groups3) # doctest: +IGNORE_EXCEPTION_DETAIL
+        Traceback (most recent call last):
+        ...
+        NoMatchException
         >>> groups4 = [[['red']], [['llama']], [['red', 'green']], [['cat']]]
         >>> constraints.constraints[0](groups4)
         [[[]], [['llama']], [['red', 'green']], [['cat']]]
@@ -155,7 +153,7 @@ class Constraints:
 
     def order(self, attribute1, attribute2):
         """ Add constraint: First attribute is adjacent and left of the second.
-        >>> constraints = Constraints(2) 
+        >>> constraints = Constraints() 
         >>> constraints.order('red','cat') # doctest: +ELLIPSIS
         <...Constraints object at ...>
         >>> groups = [[['red', 'blue'], ['cat','dog']], [['red', 'blue'], ['cat', 'dog']]]
@@ -195,7 +193,7 @@ class Constraints:
         """ Add constraint: Attribute is in the middle group. If number
         of groups is even both centermost groups are considered middle.
         
-        >>> constraints = Constraints(2) 
+        >>> constraints = Constraints() 
         >>> constraints.middle('red') # doctest: +ELLIPSIS
         <...Constraints object at ...>
         >>> groups = [[['red', 'blue']], [['red', 'blue']], [['cat', 'dog']]]
@@ -211,7 +209,6 @@ class Constraints:
         NoMatchException
         """
 
-        # todo: exception ei toimi oikein
         def middle_test(groups):
             middle = len(groups) // 2
             indexes = {middle}

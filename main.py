@@ -11,7 +11,7 @@ pets = ['dog', 'snails', 'fox', 'horse', 'zebra']
 tobacco = ['old gold', 'kool', 'chesterfield', 'lucky strike', 'parliament']
 attributes = [colors, people, drinks, pets, tobacco]
 
-constraints = Constraints(5) \
+constraints = Constraints() \
     .together('englishman', 'red') \
     .together('spaniard', 'dog') \
     .together('coffee', 'green') \
@@ -28,7 +28,8 @@ constraints = Constraints(5) \
     .adjacent('norwegian', 'blue')
 solver = Solver(attributes, constraints)
 answer = solver.solve()
-print(answer)
+for group in answer:
+    print(group)
 
 
 # houses are numbered from left to right from 0 to 4

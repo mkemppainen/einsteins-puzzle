@@ -52,7 +52,7 @@ goldfish_constraints = Constraints(3) \
     .order('blue', 'green')
 
 solver = Solver(attributes, goldfish_constraints)
-answer = next(solver.solve())
+answer = next(solver.apply_constraints())
 for group in answer:
     if 'goldfish' in group:
         # Attributes in the answer group are in

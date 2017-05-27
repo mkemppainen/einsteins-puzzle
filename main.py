@@ -1,6 +1,3 @@
-# bruteforcing won't work because there are something like 24,883,200,000
-# combinations the houses could be in
-# import Solver
 from solving import Constraints, Solver
 import solving
 
@@ -31,6 +28,17 @@ answer = solver.solve()
 for group in answer:
     print(group)
 
+# constraints = Constraints() \
+#     .together('old gold', 'snails') \
+# # together after the only order
+# solved = [[['platypus']], [['old gold']]]
+
+# asdf = solving.apply_constraints(constraints.constraints, solved)
+# constraints.constraints[0](solved)
+# lengths = solving.length_check(solved)
+# # print(asdf)
+# print(lengths)
+# print(0 in lengths)
 
 # houses are numbered from left to right from 0 to 4
 

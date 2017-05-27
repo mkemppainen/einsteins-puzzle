@@ -4,11 +4,9 @@ import itertools
 import time
 import doctest
 
-class NoMatchException(Exception):
-    pass
-
 class UnsolvableException(Exception):
     pass
+
 
 class Solver:
     """ Can be used to solve logic puzzles such as Einsteins puzzle. """
@@ -21,22 +19,126 @@ class Solver:
         # initialize with groups containing all attributes
         self.groups = [deepcopy(attributes) for _ in range(len(attributes[0]))]
 
-    # todo apply constraints and alternate with bruteforce
     def solve(self):
-        return apply_constraints(self.constraints, self.groups)
+        try_to_solve(self.constraints, self.groups)
+        # apply_constraints(self.constraints, self.groups)
+        return self.groups
 
+class NotSureWhatNowException(Exception):
+    pass
 
+def try_to_solve(constraints, groups, start_offset=0):
+    # print('{0} try_to_solve calls so far.'.format(global_try_count))
+    # global global_try_count
+    # global_try_count += 1
+    apply_constraints(constraints, groups)
+    ### Test if solved
+    flattened = flatten_groups(groups)
+    print('Offset: {0}. Groups length: {1}'.format(start_offset, len(flattened)))
+    if len(flattened) == len(set(flattened)):
+        return groups
 
+    ### Else keep solving
+    copy = deepcopy(groups)
+    offset = start_offset
+    while True:
+        if remove_possibility(copy, offset):
+            try:
+                return try_to_solve(constraints, copy, offset)
+            except UnsolvableException:
+                copy = deepcopy(groups)
+                offset += 1
+        else:
+            raise UnsolvableException("This path exhausted.")
+
+def remove_possibility(groups, offset=0):
+    """ Removes one attribute from attribute group where there are several. 
+    
+    Skip 'offset' number of possible removals.
+    Return True if successfully removed an attribute. If can't remove any
+    attributes (possibly because of offset), return False.
+    
+    >>> groups = [[['red', 'blue', 'green']], [['blue', 'green']]]
+    >>> remove_possibility(groups) #1
+    True
+    >>> groups #1
+    [[['blue', 'green']], [['blue', 'green']]]
+    >>> remove_possibility(groups) #2
+    True
+    >>> groups #2
+    [[['green']], [['blue', 'green']]]
+    >>> remove_possibility(groups) #3
+    True
+    >>> groups #3
+    [[['green']], [['green']]]
+    >>> remove_possibility(groups) #4
+    False
+    >>> groups #4
+    [[['green']], [['green']]]
+    
+    >>> groups2 = [[['cat', 'dog', 'bat', 'fish', 'mouse']]]
+    >>> remove_possibility(groups2, 4) #1
+    True
+    >>> groups2
+    [[['cat', 'dog', 'bat', 'fish']]]
+    >>> remove_possibility(groups2, 5) #2
+    False
+    >>> groups2 #2
+    [[['cat', 'dog', 'bat', 'fish']]]
+    
+    >>> groups3 = [[['cat', 'dog'], ['red', 'blue']], [['fish'], ['red', 'blue']]]
+    >>> remove_possibility(groups3, 4) #1
+    True
+    >>> groups3 #1
+    [[['cat', 'dog'], ['red', 'blue']], [['fish'], ['blue']]]
+    >>> remove_possibility(groups3, 3) #2
+    True
+    >>> groups3 #2
+    [[['cat', 'dog'], ['red']], [['fish'], ['blue']]]
+    >>> remove_possibility(groups3, -1) #3
+    False
+    >>> groups3 #3
+    [[['cat', 'dog'], ['red']], [['fish'], ['blue']]]
+    """
+    if offset < 0:
+        return False
+    skips_left = offset
+    for group in groups:
+        for attributes in group:
+            if len(attributes) > 1:
+                if skips_left < len(attributes):
+                    attributes.pop(skips_left)
+                    return True
+                else:
+                    skips_left -= len(attributes)
+    return False
+
+def length_check(groups):
+    """ Return list of lengths of attribute groups."""
+    return [len(atts) for group in groups for atts in group]
 
 def apply_constraints(constraints, groups):
     """ Apply all constraints several times as long as groups change. """
     last_iteration = ''
+    iteration_count = 0
     while last_iteration != str(groups):
-        last_iteration = str(groups.copy())
+        iteration_count += 1
+
+        last_iteration = str(groups)
         for constraint in constraints:
             constraint(groups)
+
         only_one_attribute_constraint(groups)
+        solved_attribute_constraint(groups)
     return groups
+
+def flatten_groups(groups):
+    """ Return groups as flattened list.
+    
+    >>> flatten_groups([[['red', 'blue'], ['cat', 'dog']], [['cat']]])
+    ['red', 'blue', 'cat', 'dog', 'cat']
+    """
+    return [x for y in groups for z in y for x in z]
 
 def only_one_attribute_constraint(groups):
     """ Remove other attributes from group if an attribute is the only one. 
@@ -50,7 +152,7 @@ def only_one_attribute_constraint(groups):
     [[['red']], [['blue', 'green']]]
     """
     ### Remove other attributes from group of a lone attribute
-    flattened = [x for y in groups for z in y for x in z]
+    flattened = flatten_groups(groups)
     counts = Counter(flattened)
     for attribute, count in counts.items():
         if count == 1:
@@ -97,10 +199,21 @@ def solved_attribute_constraint(groups):
 
 
 def remove_other_attributes(groups, index, attribute):
+    """ Remove other attributes from the group in the index.
+    
+    If attribute does not exist in the index do nothing.
+    
+    >>> groups = [[['cat', 'dog', 'mouse']], [['dog']]]
+    >>> remove_other_attributes(groups, 0, 'cat')
+    [[['cat']], [['dog']]]
+    >>> remove_other_attributes(groups, 0, 'platypus') # doctest: +IGNORE_EXCEPTION_DETAIL
+    [[['cat']], [['dog']]]
+    """
     for attributes in groups[index]:
         if attribute in attributes:
             attributes.clear()
             attributes.append(attribute)
+    return groups
 
 
 def attribute_indexes(groups, attribute):
@@ -133,9 +246,7 @@ def remove_attributes(groups, indexes, attributes):
                     group.remove(attribute)
     return groups
 
-# todo: constraint: when attribute is constrained with attribute that is the sole one
-# todo:             one can remove other attributes of those types
-# todo:             in both styles like only_one_attribute and solved_attribute constraints
+
 class Constraints:
     """ Defines constraints for solver.
     
@@ -161,17 +272,25 @@ class Constraints:
         <...Constraints object at ...>
         >>> constraints.constraints[1](groups)
         [[['blue', 'green'], ['dog']], [['red', 'blue'], ['cat']]]
+        
+        >>> constraints2 = Constraints()
+        >>> constraints2.together('old gold', 'snails') # doctest: +ELLIPSIS
+        <...Constraints object at ...>
+        >>> groups2 = [[['platypus']], [['old gold']]]
+        >>> constraints2.constraints[0](groups2) # doctest: +IGNORE_EXCEPTION_DETAIL
+        Traceback (most recent call last):
+        ...
+        UnsolvableException
         """
         def together_test(groups):
             """ Remove attributes that don't adhere to constraints from the groups. """
             indexes1 = set(attribute_indexes(groups, attribute1))
             indexes2 = set(attribute_indexes(groups, attribute2))
+            legal_indexes = indexes1.intersection(indexes2)
             wrong_indexes = indexes1.symmetric_difference(indexes2)
-            if len(wrong_indexes) == len(groups):
-                raise NoMatchException("No attributes found together.")
-            if len(indexes1) == 1 or len(indexes2) == 1:
-                # todo: remove other attributes in 2 ways
-                pass
+            if len(legal_indexes) == 0:
+                raise UnsolvableException("No attributes '{0}' and '{1}' found together"
+                                          .format(attribute1, attribute2))
             remove_attributes(groups, wrong_indexes, [attribute1, attribute2])
             return groups
 
@@ -194,7 +313,7 @@ class Constraints:
         >>> constraints.constraints[0](groups3) # doctest: +IGNORE_EXCEPTION_DETAIL
         Traceback (most recent call last):
         ...
-        NoMatchException
+        UnsolvableException
         >>> groups4 = [[['red']], [['llama']], [['red', 'green']], [['cat']]]
         >>> constraints.constraints[0](groups4)
         [[[]], [['llama']], [['red', 'green']], [['cat']]]
@@ -210,10 +329,8 @@ class Constraints:
             legal_indexes2 = {item for i in index1 for item in (i-1, i+1)
                               if 0 <= item < length}
             if len(legal_indexes1) == 0:
-                raise NoMatchException("No matching adjacent attributes found.")
+                raise UnsolvableException("No matching adjacent attributes found.")
             wrong_indexes1 = set(range(length)).difference(legal_indexes1)
-            # if len(wrong_indexes1) == len(groups):
-            #     raise NoMatchException("No matching adjacent attributes found.")
             wrong_indexes2 = set(range(length)).difference(legal_indexes2)
             remove_attributes(groups, wrong_indexes1, [attribute1])
             remove_attributes(groups, wrong_indexes2, [attribute2])
@@ -234,7 +351,7 @@ class Constraints:
         >>> constraints.constraints[0](groups2) # doctest: +IGNORE_EXCEPTION_DETAIL
         Traceback (most recent call last):
         ...
-        NoMatchException
+        UnsolvableException
         >>> groups3 = [[['red']],[['cat']]]
         >>> constraints.constraints[0](groups3)
         [[['red']], [['cat']]]
@@ -242,7 +359,6 @@ class Constraints:
         >>> constraints.constraints[0](groups4)
         [[[]], [['llama']], [['red', 'green']], [['cat']]]
         """
-
         def order_test(groups):
             index1 = set(attribute_indexes(groups, attribute1))
             index2 = set(attribute_indexes(groups, attribute2))
@@ -250,7 +366,7 @@ class Constraints:
             legal_indexes1 = {item - 1 for item in index2 if 0 <= item - 1 < length}
             legal_indexes2 = {item + 1 for item in index1 if 0 <= item + 1 < length}
             if len(legal_indexes1) == 0:
-                raise NoMatchException("No matching adjacent attributes found.")
+                raise UnsolvableException("No matching adjacent attributes found.")
             wrong_indexes1 = set(range(length)).difference(legal_indexes1)
             wrong_indexes2 = set(range(length)).difference(legal_indexes2)
             remove_attributes(groups, wrong_indexes1, [attribute1])
@@ -277,19 +393,16 @@ class Constraints:
         >>> constraints.constraints[0](groups3) # doctest: +IGNORE_EXCEPTION_DETAIL
         Traceback (most recent call last):
         ...
-        NoMatchException
+        UnsolvableException
         """
-
         def middle_test(groups):
             middle = len(groups) // 2
             indexes = {middle}
             if len(groups) % 2 == 0:
                 indexes.add(middle - 1)
             wrong_indexes = set(range(len(groups))).difference(indexes)
-
             if len(set(attribute_indexes(groups, attribute)).intersection(indexes)) < 1:
-                raise NoMatchException("No attribute found in the middle.")
-
+                raise UnsolvableException("No attribute found in the middle.")
             remove_attributes(groups, wrong_indexes, [attribute])
             return groups
 
@@ -298,18 +411,3 @@ class Constraints:
 
 if __name__ == '__main__':
     doctest.testmod()
-
-# a,s,d   1,2,3   i,o,p
-# attributes: ([a,s,d],[1,2,3],[i,o,p])
-# groups complete:  ([[a],[1],[i]],[[s],[2],[o]],[[d],[3],[p]])
-# groups incomplete:
-# (([a,s,d],[1,2,3],[i,o,p]),([a,s,d],[1,2,3],[i,o,p]),([a,s,d],[1,2,3],[i,o,p]))
-
-# kaikki mahdollisuudet on groupissa
-# ota groupeista pois attribuutteja constrainttien perusteella:
-#   muuta constraintit palauttamaan listan vaarista indekseista tai
-#   poistamaan attribuutit jotka eivat vastaa constraintteja
-# todo: lisaa 'universaaleja' constraintteja:
-# esim attribuutti voi
-# olla vain kerrallaan yhdessa groupissa. jos yksi group tai sen
-# attribuutti on varma, sen voi poistaa muualta

@@ -4,6 +4,7 @@ import itertools
 import time
 import doctest
 
+
 class UnsolvableException(Exception):
     pass
 
@@ -13,43 +14,118 @@ class Solver:
     def __init__(self, attributes, constraints):
         # list of attributes: [['att1','att2'],['otheratt1','otheratt2']]
         self.attributes = attributes
-        # list of functions
+        # list of functions>
         self.constraints = constraints.constraints
         self.groups = []
         # initialize with groups containing all attributes
         self.groups = [deepcopy(attributes) for _ in range(len(attributes[0]))]
 
     def solve(self):
-        try_to_solve(self.constraints, self.groups)
-        # apply_constraints(self.constraints, self.groups)
-        return self.groups
+        apply_constraints(self.constraints, self.groups)
+        return try_to_solve(self.constraints, self.groups)
 
-class NotSureWhatNowException(Exception):
-    pass
 
 def try_to_solve(constraints, groups, start_offset=0):
-    # print('{0} try_to_solve calls so far.'.format(global_try_count))
-    # global global_try_count
-    # global_try_count += 1
-    apply_constraints(constraints, groups)
-    ### Test if solved
-    flattened = flatten_groups(groups)
-    print('Offset: {0}. Groups length: {1}'.format(start_offset, len(flattened)))
-    if len(flattened) == len(set(flattened)):
-        return groups
+    """ Try to recursively solve the puzzle."""
+    original_copy = deepcopy(groups)
+    try:
+        apply_constraints(constraints, groups)
+    except UnsolvableException:
+        return [], False
 
-    ### Else keep solving
+    flattened = flatten_groups(groups)
+    if len(flattened) == len(set(flattened)):
+        return groups, True
     copy = deepcopy(groups)
     offset = start_offset
+    # Offsets to skip
+    skip_offsets = set()
+    # Offsets to return
+    return_skip_offsets = generate_skip_offsets(original_copy, copy)
     while True:
+        if offset in skip_offsets:
+            offset += 1
+            continue
         if remove_possibility(copy, offset):
-            try:
-                return try_to_solve(constraints, copy, offset)
-            except UnsolvableException:
+            result, success = try_to_solve(constraints, copy, offset)
+            if success:
+                return result, True
+            else:
                 copy = deepcopy(groups)
+                skip_offsets.update(result)
                 offset += 1
         else:
-            raise UnsolvableException("This path exhausted.")
+            # This path was exhausted
+            return return_skip_offsets, False
+
+
+def generate_skip_offsets(groups1, groups2):
+    """ Return list of offsets to skip for function remove_possibility.
+
+    If remove_possibility is called with group1 and all the offsets from the
+    return value starting from the last, the result will be group2.
+
+    group2 must be same as group1 with some values removed. Else return nonsense.
+
+    >>> groups1 = [[['cat', 'dog', 'bat']]]
+    >>> groups2 = [[['dog']]]
+    >>> skips = generate_skip_offsets(groups1, groups2)
+    >>> skips
+    [0, 2]
+    >>> remove_possibility(groups1, skips[1])
+    True
+    >>> remove_possibility(groups1, skips[0])
+    True
+    >>> groups1 == groups2
+    True
+    >>> groups3 = [[['cat', 'dog'], ['red', 'blue']], [['horse'], ['red', 'blue']], [['bat']]]
+    >>> groups4 = [[['dog'], ['blue']], [['horse'], ['red']],[['bat']]]
+    >>> generate_skip_offsets(groups3, groups4)
+    [0, 2, 5]
+    >>> groups5 = [[['dog'], ['blue']], [['horse'], ['red', 'blue', 'green']]]
+    >>> groups6 = [[['dog'], ['blue']], [['horse'], ['green']]]
+    >>> generate_skip_offsets(groups5, groups6)
+    [0, 1]
+
+    # first list must be longer
+    >>> generate_skip_offsets([[['mad']]], [[['bat', 'cat']]]) # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    ...
+    ValueError
+    >>> generate_skip_offsets([[['cat']]], [[['cat']]])
+    []
+    """
+    copy1 = deepcopy(groups1)
+    copy2 = deepcopy(groups2)
+
+    # remove singleton lists because function remove_possibility skips them
+    for group1, group2 in zip(copy1, copy2):
+        for attributes1, attributes2 in zip(group1, group2):
+            if len(attributes1) == 1:
+                attributes1.clear()
+                attributes2.clear()
+
+    flattened1 = flatten_groups(copy1)
+    flattened2 = flatten_groups(copy2)
+    if len(flattened1) < len(flattened2):
+        raise ValueError("First group is shorter than second.")
+
+    missing_attribute_indexes = []
+    offset = 0
+    next_index = 0
+    for i, attribute in enumerate(flattened1):
+        try:
+            other_attribute = flattened2[next_index]
+        except IndexError:
+            other_attribute = None
+        if other_attribute == attribute:
+            next_index += 1
+            continue
+        else:
+            missing_attribute_indexes.append(i)
+            offset += 1
+    return missing_attribute_indexes
+
 
 def remove_possibility(groups, offset=0):
     """ Removes one attribute from attribute group where there are several. 
@@ -113,9 +189,11 @@ def remove_possibility(groups, offset=0):
                     skips_left -= len(attributes)
     return False
 
+
 def length_check(groups):
     """ Return list of lengths of attribute groups."""
     return [len(atts) for group in groups for atts in group]
+
 
 def apply_constraints(constraints, groups):
     """ Apply all constraints several times as long as groups change. """
@@ -123,14 +201,13 @@ def apply_constraints(constraints, groups):
     iteration_count = 0
     while last_iteration != str(groups):
         iteration_count += 1
-
         last_iteration = str(groups)
         for constraint in constraints:
             constraint(groups)
-
         only_one_attribute_constraint(groups)
         solved_attribute_constraint(groups)
     return groups
+
 
 def flatten_groups(groups):
     """ Return groups as flattened list.
@@ -139,6 +216,7 @@ def flatten_groups(groups):
     ['red', 'blue', 'cat', 'dog', 'cat']
     """
     return [x for y in groups for z in y for x in z]
+
 
 def only_one_attribute_constraint(groups):
     """ Remove other attributes from group if an attribute is the only one. 
@@ -151,7 +229,6 @@ def only_one_attribute_constraint(groups):
     >>> only_one_attribute_constraint(groups)
     [[['red']], [['blue', 'green']]]
     """
-    ### Remove other attributes from group of a lone attribute
     flattened = flatten_groups(groups)
     counts = Counter(flattened)
     for attribute, count in counts.items():
@@ -161,6 +238,7 @@ def only_one_attribute_constraint(groups):
                 remove_other_attributes(groups, index, attribute)
 
     return groups
+
 
 def solved_attribute_constraint(groups):
     """ Remove solved attribute from other groups.
@@ -230,6 +308,7 @@ def attribute_indexes(groups, attribute):
                 indexes.append(group[0])
     return indexes
 
+
 def remove_attributes(groups, indexes, attributes):
     """ Remove all given attributes from the given indexes.
     
@@ -290,7 +369,7 @@ class Constraints:
             wrong_indexes = indexes1.symmetric_difference(indexes2)
             if len(legal_indexes) == 0:
                 raise UnsolvableException("No attributes '{0}' and '{1}' found together"
-                                          .format(attribute1, attribute2))
+                                           .format(attribute1, attribute2))
             remove_attributes(groups, wrong_indexes, [attribute1, attribute2])
             return groups
 
